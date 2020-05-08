@@ -1,10 +1,10 @@
 //----------------------------------------------------------------------
-// Author:
+// Author: Kevin Lunden
 // Course: CPSC 223, Spring 2020
 // Assign: 10
 // File:   hw10_test.cpp
 //
-// TODO: Description here
+// TODO: Tests different parts of avl collection.h
 //----------------------------------------------------------------------
 
 

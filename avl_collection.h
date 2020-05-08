@@ -1,10 +1,9 @@
 
 //----------------------------------------------------------------------
-// Author: ...
+// Author: Kevin Lunden
 // Course: CPSC 223, Spring 2020
 // Assign: 10
 // File:   avl_collection.h
-// ...
 //----------------------------------------------------------------------
 
 
@@ -12,6 +11,7 @@
 #define AVL_COLLECTION_H
 
 #include <vector>
+#include <cmath>
 #include <algorithm>
 #include <string>               // for testing
 #include "collection.h"
@@ -109,18 +109,167 @@ private:
 
 
 // TODO: implement the above functions here ...
-
-
 // NOTE: some examples given below ...
 
+// create an empty tree
+template<typename K, typename V>
+AVLCollection<K,V>::AVLCollection() : tree_size(0), root(nullptr)
+{}
+
+template<typename K, typename V>
+AVLCollection<K,V>::AVLCollection(const AVLCollection<K,V>& rhs) : tree_size(0), root(nullptr)
+{
+ tree_size = 0;
+ root = nullptr;
+ *this = rhs;
+}
+
+// tree assignment operator
+template<typename K, typename V>
+AVLCollection<K,V>& AVLCollection<K,V>::operator=(const AVLCollection<K,V>& rhs)
+{
+ if (this != &rhs)
+ {
+  make_empty(root);
+  tree_size = 0;
+  root = nullptr;
+  preorder_copy(rhs.root, root);
+ }
+
+ return *this;
+}
+
+
+// delete a tree
+template<typename K, typename V>
+AVLCollection<K,V>::~AVLCollection()
+{
+ make_empty(root);
+
+ tree_size = 0;
+}
+
+// find and return the value associated with the key
+template<typename K, typename V>
+bool AVLCollection<K,V>::find(const K& search_key, V& the_val) const
+{
+ Node* tree = root;
+ while(tree != nullptr)
+ {
+  //if correct node return value otherwise search left or right
+  if(tree->key == search_key)
+  {
+   the_val = tree->value;
+   return true;
+  }
+  else if(search_key < tree->key)
+  {
+   tree = tree->left;
+  }
+  else
+  {
+   tree = tree->right;
+  }
+ }
+ return false;
+}
+
+// find and return the values with keys >= to k1 and <= to k2 
+template<typename K, typename V>
+void AVLCollection<K,V>::find(const K& k1, const K& k2, std::vector<V>& vals) const
+{
+ range_search(root, k1, k2, vals);
+}
+
+// return all of the keys in the collection 
+template<typename K, typename V>
+void AVLCollection<K,V>::keys(std::vector<K>& all_keys) const
+{
+ inorder(root, all_keys);
+}
+
+// return all of the keys in ascending (sorted) order
+template<typename K, typename V>
+void AVLCollection<K,V>::sort(std::vector<K>& all_keys_sorted) const
+{
+ keys(all_keys_sorted);
+}
+
+// return the number of key-value pairs in the collection
+template<typename K, typename V>
+int AVLCollection<K,V>::size() const
+{
+ return tree_size;
+}
+
+// helper to empty entire tree
+template<typename K, typename V>
+void AVLCollection<K,V>::make_empty(Node* subtree_root)
+{
+ if(subtree_root == nullptr)
+ {
+  root = nullptr;
+  return;
+ }
+
+ make_empty(subtree_root->left);
+ make_empty(subtree_root->right);
+
+ delete subtree_root;;
+}
+
+// helper to build sorted list of keys (used by keys and sort)
+template<typename K, typename V>
+void AVLCollection<K,V>::inorder(const Node* subtree_root, std::vector<K>& keys) const
+{
+ if(subtree_root == nullptr)
+  return;
+
+ inorder(subtree_root->left, keys);
+ keys.push_back(subtree_root->key);
+ inorder(subtree_root->right, keys);
+}
+
+// helper to recursively find range of keys
+template<typename K, typename V>
+void AVLCollection<K,V>::range_search(const Node* subtree_root, const K& k1, const K& k2, std::vector<V>& vals) const
+{
+ if(subtree_root == nullptr)
+    return;
+
+ if(subtree_root && k1 <= subtree_root -> key && k2 >= subtree_root -> key)
+ {
+  vals.push_back(subtree_root -> value);
+  if(subtree_root && k1 > subtree_root -> key)
+   subtree_root = subtree_root -> right;
+  if(subtree_root && k2 < subtree_root -> key)
+   subtree_root = subtree_root -> left;
+ }
+
+ range_search(subtree_root -> right, k1, k2, vals);
+ range_search(subtree_root -> left, k1, k2, vals);
+}
+
+// recursively (deep) copy ancestors of src to dst
+template<typename K, typename V>
+void AVLCollection<K,V>::preorder_copy(const Node* subtree_root_src, Node* subtree_root_dst)
+{
+ if(subtree_root_src == nullptr)
+  return;
+
+ add(subtree_root_src -> key, subtree_root_src -> value);
+ preorder_copy(subtree_root_src -> left, subtree_root_dst);
+ preorder_copy(subtree_root_src -> right, subtree_root_dst);
+}
 
 // to see how height should work
 template<typename K, typename V> 
 int AVLCollection<K,V>::height() const
 {
-  if (!root)
-    return 0;
-  return root->height;
+ if (!root)
+  return 0;
+
+ return root->height;
 }
 
 
@@ -129,7 +278,11 @@ template<typename K, typename V>
 typename AVLCollection<K,V>::Node*
 AVLCollection<K,V>::rotate_right(Node* k2)
 {
-  // fill in here
+ Node * k1 = k2 -> left;
+ k2 -> left = k1 -> right;
+ k1 -> right = k2;
+
+ return k1;
 }
 
 // from class
@@ -137,45 +290,279 @@ template<typename K, typename V>
 typename AVLCollection<K,V>::Node*
 AVLCollection<K,V>::rotate_left(Node* k2)
 {
-  // fill in here
-}
-
-template<typename K, typename V>
-void AVLCollection<K,V>::add(const K& a_key, const V& a_val)
-{
-  // to build in the height and rebalance, this must be a recursive
-  // function!
-  root = add(root, a_key, a_val);
-  // print_tree("", root); // for debugging
-}
-
-template<typename K, typename V>
-typename AVLCollection<K,V>::Node*
-AVLCollection<K,V>::rebalance(Node* subtree_root)
-{
-  // fill in here
+ Node * k1 = k2 -> right;
+ k2 -> right = k1 -> left;
+ k1 -> left = k2;
+ 
+ return k1;
 }
 
 template<typename K, typename V>
 typename AVLCollection<K,V>::Node*
 AVLCollection<K,V>::add(Node* subtree_root, const K& a_key, const V& a_val)
 {
-  // fill in here
-}  
+ // if spot is open / null
+ if(!subtree_root)
+ {
+  Node* tmp = new Node;
+  tmp -> key = a_key;
+  tmp -> value = a_val;
+  tmp -> left = nullptr;
+  tmp -> right = nullptr;
+  subtree_root = tmp;
+  subtree_root -> height = 1;
+  tree_size++;
+ } 
+ else 
+ {
+  if(a_key < subtree_root -> key)
+   subtree_root -> left = add(subtree_root -> left, a_key, a_val);
+  else
+   subtree_root -> right = add(subtree_root -> right, a_key, a_val);
 
+  // reassigns new height values
+  int treeH = subtree_root -> height;
+  int heightL = 0;
+  int heightR = 0;
+  if(subtree_root -> left != nullptr)
+   heightL = subtree_root -> left -> height;
+  if(subtree_root -> right != nullptr)
+   heightR = subtree_root -> right -> height;
+
+  int biggerH = std::max(heightL, heightR);
+  if(treeH - biggerH <= 0)
+   subtree_root -> height++;
+ }
+
+ // rebalance after insertion
+ return rebalance(subtree_root);
+}
+
+template<typename K, typename V>
+void AVLCollection<K,V>::add(const K& a_key, const V& a_val)
+{
+ root = add(root, a_key, a_val);
+ //print_tree("", root);
+ //std::cout << std::endl;
+}
+
+template<typename K, typename V>
+typename AVLCollection<K,V>::Node*
+AVLCollection<K,V>::rebalance(Node* subtree_root)
+{
+ if(!subtree_root)
+    return subtree_root;
+
+ Node* lptr = subtree_root -> left;
+ Node* rptr = subtree_root -> right;
+
+ // obtain left and right subtree heights
+ int heightL = 0;
+ int heightR = 0;
+ int tmpHeight;
+ if(lptr != nullptr)
+  heightL = lptr -> height;
+ if(rptr != nullptr)
+  heightR = rptr -> height;
+
+ // if left heavy (balance is greater than 1)
+ if(heightL - heightR > 1)
+ {
+  int heightLR = 0;
+  int heightLL = 0;
+  if(lptr -> left != nullptr)
+   heightLL = lptr -> left -> height;
+  if(lptr -> right != nullptr)
+   heightLR = lptr -> right -> height;
+
+  // if left-right heavy, double rotate
+  if(heightLL <= heightLR)
+  {
+   tmpHeight = lptr -> right -> height;
+   subtree_root -> left = rotate_left(subtree_root -> left);
+   subtree_root = rotate_right(subtree_root);
+   subtree_root -> height++;
+   subtree_root -> left -> height--;
+   subtree_root -> right -> height = tmpHeight;
+  } 
+  else
+  {
+   tmpHeight = lptr -> left -> height;
+   subtree_root = rotate_right(subtree_root);
+   subtree_root -> right -> height = tmpHeight;;
+  }
+
+  // if right heavy (balance is less than -1)
+  } 
+  else if(heightL - heightR < -1)
+  {
+   int heightRL = 0;
+   int heightRR = 0;
+   if(rptr -> left != nullptr)
+    heightRL = rptr -> left -> height;
+   if(rptr -> right != nullptr)
+    heightRR = rptr -> right -> height;
+
+   // if right-left heavy, double rotate
+   if(heightRL > heightRR)
+   {
+    tmpHeight = rptr -> left -> height;
+    subtree_root -> right = rotate_right(subtree_root -> right);
+    subtree_root = rotate_left(subtree_root);
+    subtree_root -> height++;
+    subtree_root -> right -> height--;
+    subtree_root -> left -> height = tmpHeight;
+   } 
+   else 
+   {
+    tmpHeight = rptr -> right -> height;
+    subtree_root = rotate_left(subtree_root);
+    subtree_root -> left -> height = tmpHeight;
+   }
+  }
+ return subtree_root;
+} 
 
 template <typename K, typename V>
 void AVLCollection<K,V>::remove(const K& a_key)
 {
   root = remove(a_key, root);
-  // print_tree("", root); // for debugging
+  //print_tree("", root); // for debugging
+  //std::cout << std::endl;
 }
 
 template <typename K, typename V>
 typename AVLCollection<K,V>::Node*
 AVLCollection<K,V>::remove(const K& key, Node* subtree_root)
 {
-  // fill in here
+ int tmpHeight = subtree_root -> height;
+ V val;
+
+ // checks if key is in the collection
+ bool found = find(key, val);
+ if(found == false)
+  return subtree_root;
+
+ if(subtree_root && key < subtree_root -> key)
+ {
+  subtree_root -> left = remove(key, subtree_root -> left);
+
+  // update the height of ancestor nodes
+  if(!subtree_root -> right)
+   subtree_root -> height--;
+  else if(subtree_root -> left)
+  {
+   if(subtree_root -> right -> height < subtree_root -> left -> height)
+   {
+    if(subtree_root -> height - subtree_root -> left -> height > 1)
+     subtree_root -> height--;
+   } 
+   else if(subtree_root -> left -> height == subtree_root -> right -> height) 
+   {
+    if(subtree_root -> height - subtree_root -> left -> height > 1)
+     subtree_root -> height--;
+   }
+  }
+
+  // rebalances as it backtracks
+  subtree_root = rebalance(subtree_root);
+
+ }
+ else if(subtree_root && key > subtree_root -> key)
+ {
+  subtree_root -> right = remove(key, subtree_root -> right);
+
+  // update the height of ancestor nodes
+  if(!subtree_root -> left)
+   subtree_root -> height--;
+  else if(subtree_root -> right)
+  {
+   if(subtree_root -> left -> height < subtree_root -> right -> height)
+   {
+    if(subtree_root -> height - subtree_root -> right -> height > 1)
+     subtree_root -> height--;
+   } 
+   else if(subtree_root -> left -> height == subtree_root -> right -> height) 
+   {
+    if(subtree_root -> height - subtree_root -> right -> height > 1)
+     subtree_root -> height--;
+   }
+  }
+    
+  // rebalances as it backtracks
+  subtree_root = rebalance(subtree_root);
+
+ } 
+ else if(subtree_root && key == subtree_root -> key) 
+ {
+  Node* cur = subtree_root;
+  int prevHeight;
+
+  // hold on to height of subtree_root
+  tmpHeight = subtree_root -> height;
+
+  // if subtree_root doesn't have any children
+  if(subtree_root -> left == nullptr && subtree_root -> right == nullptr)
+  {
+   subtree_root = nullptr;
+   delete cur;
+
+   // if subtree_root does have children, then it searches for its inorder successor
+  } 
+  else if(subtree_root -> left != nullptr && subtree_root -> right != nullptr) 
+  {
+   Node* prev = subtree_root;
+   cur = subtree_root -> right;
+   while(cur -> left != nullptr)
+   {
+    prev = cur;
+    cur = cur -> left;
+   }
+
+   // checks if height of previous subtree_root will change after removal
+   if(prev -> right == nullptr)
+    prev -> height--;
+
+   // replaces subtree_root with inorder successor
+   if(prev != subtree_root)
+    prev -> left = cur -> right;
+
+   cur -> left = subtree_root -> left;
+
+   if(subtree_root -> right != cur)
+    cur -> right = subtree_root -> right;
+      
+   delete subtree_root;
+   subtree_root = cur;
+
+   // reassign new height
+   subtree_root -> height = tmpHeight;
+   prev = nullptr;
+   cur = nullptr;
+
+   // if subtree_root only has one child
+  } 
+  else 
+  {
+   if(subtree_root -> left != nullptr)
+   {
+    subtree_root -> height = subtree_root -> left -> height;
+    subtree_root = subtree_root -> left;
+    delete cur;
+   } 
+   else 
+   {
+    subtree_root -> height = subtree_root -> right -> height;
+    subtree_root = subtree_root -> right;
+    delete cur;
+   }
+  }
+
+  tree_size--;
+ }
+
+ // final rebalance
+ return rebalance(subtree_root);
 }
 
 template<typename K, typename V>
